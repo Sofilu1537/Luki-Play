@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
 import { UnauthorizedException } from '@nestjs/common';
 import { LoginCmsUseCase } from './login-cms.use-case';
 import { User, UserRole, UserStatus } from '../../domain/entities/user.entity';
@@ -77,7 +78,10 @@ describe('LoginCmsUseCase', () => {
 
     expect(result).toEqual(tokenPair);
     expect(mockUserRepo.findByEmail).toHaveBeenCalledWith('admin@lukiplay.com');
-    expect(mockHashService.compare).toHaveBeenCalledWith('securePass123', 'hashed-pw');
+    expect(mockHashService.compare).toHaveBeenCalledWith(
+      'securePass123',
+      'hashed-pw',
+    );
     expect(mockTokenService.generateTokenPair).toHaveBeenCalledWith({
       sub: 'user-cms-1',
       role: UserRole.SUPERADMIN,

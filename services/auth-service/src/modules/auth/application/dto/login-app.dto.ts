@@ -2,7 +2,10 @@ import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginAppDto {
-  @ApiProperty({ example: 'CONTRACT-001', description: 'Contract number or equivalent identifier' })
+  @ApiProperty({
+    example: 'CONTRACT-001',
+    description: 'Contract number or equivalent identifier',
+  })
   @IsString()
   @IsNotEmpty()
   contractNumber: string;
@@ -12,7 +15,10 @@ export class LoginAppDto {
   @MinLength(6)
   password: string;
 
-  @ApiProperty({ example: 'device-abc-123', description: 'Unique device identifier' })
+  @ApiProperty({
+    example: 'device-abc-123',
+    description: 'Unique device identifier',
+  })
   @IsString()
   @IsNotEmpty()
   deviceId: string;

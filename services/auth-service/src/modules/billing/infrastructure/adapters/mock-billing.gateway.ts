@@ -13,7 +13,10 @@ import {
 export class MockBillingGateway implements BillingGateway {
   private readonly logger = new Logger(MockBillingGateway.name);
 
-  private readonly mockContracts: Record<string, { accountId: string; planId: string }> = {
+  private readonly mockContracts: Record<
+    string,
+    { accountId: string; planId: string }
+  > = {
     'CONTRACT-001': { accountId: 'acc-001', planId: 'plan-basic' },
     'CONTRACT-002': { accountId: 'acc-002', planId: 'plan-premium' },
     'CONTRACT-003': { accountId: 'acc-003', planId: 'plan-family' },
@@ -47,23 +50,27 @@ export class MockBillingGateway implements BillingGateway {
     this.logger.debug(`[MOCK] Validating contract: ${contractNumber}`);
     const contract = this.mockContracts[contractNumber];
     if (!contract) {
-      return { isValid: false, accountId: null, planId: null };
+      return Promise.resolve({ isValid: false, accountId: null, planId: null });
     }
-    return { isValid: true, accountId: contract.accountId, planId: contract.planId };
+    return Promise.resolve({
+      isValid: true,
+      accountId: contract.accountId,
+      planId: contract.planId,
+    });
   }
 
   async getSubscriptionStatus(accountId: string): Promise<SubscriptionInfo> {
     this.logger.debug(`[MOCK] Getting subscription for account: ${accountId}`);
     const sub = this.mockSubscriptions[accountId];
     if (!sub) {
-      return {
+      return Promise.resolve({
         status: 'cancelled',
         planId: 'none',
         maxDevices: 0,
         canPlay: false,
         entitlements: [],
-      };
+      });
     }
-    return sub;
+    return Promise.resolve(sub);
   }
 }

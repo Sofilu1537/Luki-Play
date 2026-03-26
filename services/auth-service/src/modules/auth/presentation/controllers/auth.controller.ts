@@ -71,7 +71,9 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token using refresh token (rotation)' })
+  @ApiOperation({
+    summary: 'Refresh access token using refresh token (rotation)',
+  })
   @ApiResponse({ status: 200, type: AuthTokensResponse })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
   async refresh(@Body() dto: RefreshTokenDto): Promise<AuthTokensResponse> {

@@ -1,8 +1,17 @@
-import { Inject, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
 import type { SessionRepository } from '../../domain/interfaces/session.repository';
 import { TOKEN_SERVICE } from '../../domain/interfaces/token.service';
-import type { TokenService, TokenPair, JwtPayload } from '../../domain/interfaces/token.service';
+import type {
+  TokenService,
+  TokenPair,
+  JwtPayload,
+} from '../../domain/interfaces/token.service';
 import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
 import type { HashService } from '../../domain/interfaces/hash.service';
 import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
@@ -11,8 +20,7 @@ import { Audience, Session } from '../../domain/entities/session.entity';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
 import { BILLING_GATEWAY } from '../../../billing/domain/interfaces/billing.gateway';
 import type { BillingGateway } from '../../../billing/domain/interfaces/billing.gateway';
-import { UserRole } from '../../domain/entities/user.entity';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class RefreshTokenUseCase {
@@ -38,7 +46,10 @@ export class RefreshTokenUseCase {
     const sessions = await this.sessionRepo.findByUserId(payload.sub);
     let matchedSession: Session | null = null;
     for (const session of sessions) {
-      const matches = await this.hashService.compare(refreshToken, session.refreshTokenHash);
+      const matches = await this.hashService.compare(
+        refreshToken,
+        session.refreshTokenHash,
+      );
       if (matches) {
         matchedSession = session;
         break;
@@ -67,7 +78,9 @@ export class RefreshTokenUseCase {
 
     let entitlements: string[] = [];
     if (user.isClient() && user.accountId) {
-      const subscription = await this.billingGateway.getSubscriptionStatus(user.accountId);
+      const subscription = await this.billingGateway.getSubscriptionStatus(
+        user.accountId,
+      );
       entitlements = subscription.entitlements;
     }
 
@@ -83,13 +96,16 @@ export class RefreshTokenUseCase {
       entitlements,
     });
 
-    const newRefreshTokenHash = await this.hashService.hash(newTokenPair.refreshToken);
-    const expiresInMs = matchedSession.audience === Audience.CMS
-      ? 24 * 60 * 60 * 1000
-      : 7 * 24 * 60 * 60 * 1000;
+    const newRefreshTokenHash = await this.hashService.hash(
+      newTokenPair.refreshToken,
+    );
+    const expiresInMs =
+      matchedSession.audience === Audience.CMS
+        ? 24 * 60 * 60 * 1000
+        : 7 * 24 * 60 * 60 * 1000;
 
     const newSession = new Session({
-      id: uuidv4(),
+      id: randomUUID(),
       userId: user.id,
       deviceId: matchedSession.deviceId,
       audience: matchedSession.audience,

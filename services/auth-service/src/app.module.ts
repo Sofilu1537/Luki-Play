@@ -13,10 +13,12 @@ import { ProfilesModule } from './modules/profiles/profiles.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 20,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 20,
+      },
+    ]),
     AuthModule,
     AccessControlModule,
     BillingModule,

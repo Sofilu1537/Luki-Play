@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AUDIENCE_KEY } from '../decorators/audience.decorator';
 
@@ -14,7 +19,9 @@ export class AudienceGuard implements CanActivate {
     if (!requiredAudiences || requiredAudiences.length === 0) {
       return true;
     }
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context
+      .switchToHttp()
+      .getRequest<{ user: { aud: string } }>();
     if (!requiredAudiences.includes(user?.aud)) {
       throw new ForbiddenException('Access denied for this audience context');
     }

@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import type { TokenService, JwtPayload, TokenPair } from '../../domain/interfaces/token.service';
+import type {
+  TokenService,
+  JwtPayload,
+  TokenPair,
+} from '../../domain/interfaces/token.service';
 import type { StringValue } from 'ms';
 
 @Injectable()
@@ -16,7 +20,10 @@ export class JwtTokenService implements TokenService {
       { ...payload },
       {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.configService.get<StringValue>('JWT_ACCESS_EXPIRY', '15m'),
+        expiresIn: this.configService.get<StringValue>(
+          'JWT_ACCESS_EXPIRY',
+          '15m',
+        ),
       },
     );
 
@@ -24,7 +31,10 @@ export class JwtTokenService implements TokenService {
       { sub: payload.sub, aud: payload.aud },
       {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get<StringValue>('JWT_REFRESH_EXPIRY', '7d'),
+        expiresIn: this.configService.get<StringValue>(
+          'JWT_REFRESH_EXPIRY',
+          '7d',
+        ),
       },
     );
 

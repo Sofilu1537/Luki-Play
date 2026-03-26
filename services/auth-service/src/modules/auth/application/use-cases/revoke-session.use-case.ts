@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
 import type { SessionRepository } from '../../domain/interfaces/session.repository';
 
@@ -17,7 +23,7 @@ export class RevokeSessionUseCase {
     }
 
     if (session.userId !== userId) {
-      throw new ForbiddenException('Cannot revoke another user\'s session');
+      throw new ForbiddenException("Cannot revoke another user's session");
     }
 
     await this.sessionRepo.deleteById(sessionId);

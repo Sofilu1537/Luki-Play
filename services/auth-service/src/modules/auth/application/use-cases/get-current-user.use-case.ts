@@ -22,7 +22,9 @@ export class GetCurrentUserUseCase {
     const permissions = getPermissionsForRole(user.role);
     let entitlements: string[] = [];
     if (user.isClient() && user.accountId) {
-      const subscription = await this.billingGateway.getSubscriptionStatus(user.accountId);
+      const subscription = await this.billingGateway.getSubscriptionStatus(
+        user.accountId,
+      );
       entitlements = subscription.entitlements;
     }
 

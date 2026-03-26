@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import type { ExecutionContext } from '@nestjs/common';
 import { RolesGuard } from './roles.guard';
 

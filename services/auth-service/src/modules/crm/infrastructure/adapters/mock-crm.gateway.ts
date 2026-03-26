@@ -33,8 +33,10 @@ export class MockCrmGateway implements CrmGateway {
     },
   };
 
-  async getCustomerByContract(contractNumber: string): Promise<CustomerInfo | null> {
+  async getCustomerByContract(
+    contractNumber: string,
+  ): Promise<CustomerInfo | null> {
     this.logger.debug(`[MOCK] Getting customer by contract: ${contractNumber}`);
-    return this.mockCustomers[contractNumber] ?? null;
+    return Promise.resolve(this.mockCustomers[contractNumber] ?? null);
   }
 }

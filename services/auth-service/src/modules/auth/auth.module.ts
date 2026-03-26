@@ -43,7 +43,10 @@ import { CrmModule } from '../crm/crm.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_ACCESS_SECRET', 'dev-access-secret'),
+        secret: configService.get<string>(
+          'JWT_ACCESS_SECRET',
+          'dev-access-secret',
+        ),
         signOptions: {
           expiresIn: configService.get<StringValue>('JWT_ACCESS_EXPIRY', '15m'),
         },

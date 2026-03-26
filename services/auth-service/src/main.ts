@@ -15,7 +15,9 @@ async function bootstrap() {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Luki Play Auth Service')
-    .setDescription('Authentication and authorization API for Luki Play OTT platform')
+    .setDescription(
+      'Authentication and authorization API for Luki Play OTT platform',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -28,4 +30,4 @@ async function bootstrap() {
   logger.log(`Auth service running on port ${port}`);
   logger.log(`Swagger docs available at http://localhost:${port}/api/docs`);
 }
-bootstrap();
+void bootstrap();

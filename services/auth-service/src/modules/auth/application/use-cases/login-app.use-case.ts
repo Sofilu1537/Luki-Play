@@ -1,10 +1,18 @@
-import { Inject, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
 import type { UserRepository } from '../../domain/interfaces/user.repository';
 import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
 import type { SessionRepository } from '../../domain/interfaces/session.repository';
 import { TOKEN_SERVICE } from '../../domain/interfaces/token.service';
-import type { TokenService, TokenPair } from '../../domain/interfaces/token.service';
+import type {
+  TokenService,
+  TokenPair,
+} from '../../domain/interfaces/token.service';
 import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
 import type { HashService } from '../../domain/interfaces/hash.service';
 import { BILLING_GATEWAY } from '../../../billing/domain/interfaces/billing.gateway';
@@ -12,7 +20,7 @@ import type { BillingGateway } from '../../../billing/domain/interfaces/billing.
 import { Audience, Session } from '../../domain/entities/session.entity';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
 import { LoginAppDto } from '../dto/login-app.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class LoginAppUseCase {
@@ -29,7 +37,9 @@ export class LoginAppUseCase {
   async execute(dto: LoginAppDto): Promise<TokenPair> {
     const user = await this.userRepo.findByContractNumber(dto.contractNumber);
     if (!user) {
-      this.logger.warn(`Login failed: contract not found ${dto.contractNumber}`);
+      this.logger.warn(
+        `Login failed: contract not found ${dto.contractNumber}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -42,7 +52,10 @@ export class LoginAppUseCase {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordValid = await this.hashService.compare(dto.password, user.passwordHash);
+    const passwordValid = await this.hashService.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordValid) {
       this.logger.warn(`Login failed: invalid password for user ${user.id}`);
       throw new UnauthorizedException('Invalid credentials');
@@ -51,9 +64,13 @@ export class LoginAppUseCase {
     // Validate subscription via billing gateway
     let entitlements: string[] = [];
     if (user.accountId) {
-      const subscription = await this.billingGateway.getSubscriptionStatus(user.accountId);
+      const subscription = await this.billingGateway.getSubscriptionStatus(
+        user.accountId,
+      );
       if (!subscription.canPlay) {
-        this.logger.warn(`Login failed: subscription not active for account ${user.accountId}`);
+        this.logger.warn(
+          `Login failed: subscription not active for account ${user.accountId}`,
+        );
         throw new UnauthorizedException('Subscription is not active');
       }
       entitlements = subscription.entitlements;
@@ -71,9 +88,11 @@ export class LoginAppUseCase {
     });
 
     // Save session
-    const refreshTokenHash = await this.hashService.hash(tokenPair.refreshToken);
+    const refreshTokenHash = await this.hashService.hash(
+      tokenPair.refreshToken,
+    );
     const session = new Session({
-      id: uuidv4(),
+      id: randomUUID(),
       userId: user.id,
       deviceId: dto.deviceId,
       audience: Audience.APP,

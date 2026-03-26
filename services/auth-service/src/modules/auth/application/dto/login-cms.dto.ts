@@ -12,7 +12,10 @@ export class LoginCmsDto {
   @MinLength(6)
   password: string;
 
-  @ApiProperty({ example: 'cms-browser-xyz', description: 'Unique device identifier' })
+  @ApiProperty({
+    example: 'cms-browser-xyz',
+    description: 'Unique device identifier',
+  })
   @IsString()
   @IsNotEmpty()
   deviceId: string;

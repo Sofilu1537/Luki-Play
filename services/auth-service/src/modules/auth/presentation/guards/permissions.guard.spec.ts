@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import type { ExecutionContext } from '@nestjs/common';
 import { PermissionsGuard } from './permissions.guard';
 
@@ -27,7 +28,9 @@ describe('PermissionsGuard', () => {
 
   it('should pass when user has the exact permission', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['cms:users:read']);
-    const context = createContext({ permissions: ['cms:users:read', 'cms:content:read'] });
+    const context = createContext({
+      permissions: ['cms:users:read', 'cms:content:read'],
+    });
 
     expect(guard.canActivate(context)).toBe(true);
   });

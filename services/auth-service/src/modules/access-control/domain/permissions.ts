@@ -18,10 +18,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     'cms:content:read',
     'cms:analytics:read',
   ],
-  [UserRole.CLIENTE]: [
-    'app:playback',
-    'app:profiles',
-  ],
+  [UserRole.CLIENTE]: ['app:playback', 'app:profiles'],
 };
 
 export function getPermissionsForRole(role: UserRole): string[] {

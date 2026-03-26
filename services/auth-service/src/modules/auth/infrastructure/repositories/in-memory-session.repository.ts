@@ -12,7 +12,7 @@ export class InMemorySessionRepository implements SessionRepository {
   private sessions: Map<string, Session> = new Map();
 
   async findById(id: string): Promise<Session | null> {
-    return this.sessions.get(id) ?? null;
+    return Promise.resolve(this.sessions.get(id) ?? null);
   }
 
   async findByUserId(userId: string): Promise<Session[]> {
@@ -22,26 +22,27 @@ export class InMemorySessionRepository implements SessionRepository {
         result.push(session);
       }
     }
-    return result;
+    return Promise.resolve(result);
   }
 
   async findByRefreshTokenHash(hash: string): Promise<Session | null> {
     for (const session of this.sessions.values()) {
       if (session.refreshTokenHash === hash) {
-        return session;
+        return Promise.resolve(session);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
 
   async save(session: Session): Promise<Session> {
     this.sessions.set(session.id, session);
-    return session;
+    return Promise.resolve(session);
   }
 
   async deleteById(id: string): Promise<void> {
     this.sessions.delete(id);
     this.logger.debug(`Session ${id} deleted`);
+    return Promise.resolve();
   }
 
   async deleteAllByUserId(userId: string): Promise<void> {
@@ -51,5 +52,6 @@ export class InMemorySessionRepository implements SessionRepository {
       }
     }
     this.logger.debug(`All sessions deleted for user ${userId}`);
+    return Promise.resolve();
   }
 }

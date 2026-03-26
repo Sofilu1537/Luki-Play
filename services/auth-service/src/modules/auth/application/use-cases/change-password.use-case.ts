@@ -1,4 +1,9 @@
-import { Inject, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
 import type { UserRepository } from '../../domain/interfaces/user.repository';
 import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
@@ -23,7 +28,10 @@ export class ChangePasswordUseCase {
       throw new UnauthorizedException('User not found');
     }
 
-    const valid = await this.hashService.compare(dto.currentPassword, user.passwordHash);
+    const valid = await this.hashService.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
     if (!valid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
@@ -33,6 +41,8 @@ export class ChangePasswordUseCase {
 
     // Invalidate all sessions to force re-login
     await this.sessionRepo.deleteAllByUserId(userId);
-    this.logger.log(`Password changed for user ${userId}, all sessions revoked`);
+    this.logger.log(
+      `Password changed for user ${userId}, all sessions revoked`,
+    );
   }
 }

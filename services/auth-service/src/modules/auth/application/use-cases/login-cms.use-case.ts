@@ -1,16 +1,24 @@
-import { Inject, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
 import type { UserRepository } from '../../domain/interfaces/user.repository';
 import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
 import type { SessionRepository } from '../../domain/interfaces/session.repository';
 import { TOKEN_SERVICE } from '../../domain/interfaces/token.service';
-import type { TokenService, TokenPair } from '../../domain/interfaces/token.service';
+import type {
+  TokenService,
+  TokenPair,
+} from '../../domain/interfaces/token.service';
 import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
 import type { HashService } from '../../domain/interfaces/hash.service';
 import { Audience, Session } from '../../domain/entities/session.entity';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
 import { LoginCmsDto } from '../dto/login-cms.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class LoginCmsUseCase {
@@ -38,9 +46,14 @@ export class LoginCmsUseCase {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordValid = await this.hashService.compare(dto.password, user.passwordHash);
+    const passwordValid = await this.hashService.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordValid) {
-      this.logger.warn(`CMS login failed: invalid password for user ${user.id}`);
+      this.logger.warn(
+        `CMS login failed: invalid password for user ${user.id}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -55,9 +68,11 @@ export class LoginCmsUseCase {
       entitlements: [],
     });
 
-    const refreshTokenHash = await this.hashService.hash(tokenPair.refreshToken);
+    const refreshTokenHash = await this.hashService.hash(
+      tokenPair.refreshToken,
+    );
     const session = new Session({
-      id: uuidv4(),
+      id: randomUUID(),
       userId: user.id,
       deviceId: dto.deviceId,
       audience: Audience.CMS,

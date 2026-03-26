@@ -8,8 +8,11 @@ import { Injectable, Logger } from '@nestjs/common';
 export class ConfirmQrLoginUseCase {
   private readonly logger = new Logger(ConfirmQrLoginUseCase.name);
 
-  async execute(_qrToken: string, _userId: string): Promise<{ confirmed: boolean }> {
+  async execute(
+    _qrToken: string, // eslint-disable-line @typescript-eslint/no-unused-vars
+    _userId: string, // eslint-disable-line @typescript-eslint/no-unused-vars
+  ): Promise<{ confirmed: boolean }> {
     this.logger.log('QR login confirm - placeholder');
-    return { confirmed: false };
+    return Promise.resolve({ confirmed: false });
   }
 }

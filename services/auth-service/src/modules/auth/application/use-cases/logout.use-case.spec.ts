@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { LogoutUseCase } from './logout.use-case';
 import { Session, Audience } from '../../domain/entities/session.entity';
 
@@ -20,10 +21,7 @@ describe('LogoutUseCase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new LogoutUseCase(
-      mockSessionRepo as any,
-      mockHashService as any,
-    );
+    useCase = new LogoutUseCase(mockSessionRepo as any, mockHashService as any);
   });
 
   it('should delete the matching session on successful logout', async () => {
@@ -44,14 +42,19 @@ describe('LogoutUseCase', () => {
     await useCase.execute('user-1', 'refresh-token');
 
     expect(mockSessionRepo.findByUserId).toHaveBeenCalledWith('user-1');
-    expect(mockHashService.compare).toHaveBeenCalledWith('refresh-token', 'hashed-token');
+    expect(mockHashService.compare).toHaveBeenCalledWith(
+      'refresh-token',
+      'hashed-token',
+    );
     expect(mockSessionRepo.deleteById).toHaveBeenCalledWith('session-1');
   });
 
   it('should handle gracefully when no matching session is found', async () => {
     mockSessionRepo.findByUserId.mockResolvedValue([]);
 
-    await expect(useCase.execute('user-1', 'refresh-token')).resolves.toBeUndefined();
+    await expect(
+      useCase.execute('user-1', 'refresh-token'),
+    ).resolves.toBeUndefined();
     expect(mockSessionRepo.deleteById).not.toHaveBeenCalled();
   });
 });

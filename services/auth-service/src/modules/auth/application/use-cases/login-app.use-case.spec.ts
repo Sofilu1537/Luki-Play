@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { UnauthorizedException } from '@nestjs/common';
 import { LoginAppUseCase } from './login-app.use-case';
 import { User, UserRole, UserStatus } from '../../domain/entities/user.entity';
@@ -86,9 +87,16 @@ describe('LoginAppUseCase', () => {
     });
 
     expect(result).toEqual(tokenPair);
-    expect(mockUserRepo.findByContractNumber).toHaveBeenCalledWith('CONTRACT-001');
-    expect(mockHashService.compare).toHaveBeenCalledWith('password123', 'hashed-pw');
-    expect(mockBillingGateway.getSubscriptionStatus).toHaveBeenCalledWith('account-1');
+    expect(mockUserRepo.findByContractNumber).toHaveBeenCalledWith(
+      'CONTRACT-001',
+    );
+    expect(mockHashService.compare).toHaveBeenCalledWith(
+      'password123',
+      'hashed-pw',
+    );
+    expect(mockBillingGateway.getSubscriptionStatus).toHaveBeenCalledWith(
+      'account-1',
+    );
     expect(mockTokenService.generateTokenPair).toHaveBeenCalledWith({
       sub: 'user-1',
       role: UserRole.CLIENTE,

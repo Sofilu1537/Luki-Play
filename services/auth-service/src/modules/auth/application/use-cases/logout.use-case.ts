@@ -16,10 +16,15 @@ export class LogoutUseCase {
   async execute(userId: string, refreshToken: string): Promise<void> {
     const sessions = await this.sessionRepo.findByUserId(userId);
     for (const session of sessions) {
-      const matches = await this.hashService.compare(refreshToken, session.refreshTokenHash);
+      const matches = await this.hashService.compare(
+        refreshToken,
+        session.refreshTokenHash,
+      );
       if (matches) {
         await this.sessionRepo.deleteById(session.id);
-        this.logger.log(`User ${userId} logged out, session ${session.id} removed`);
+        this.logger.log(
+          `User ${userId} logged out, session ${session.id} removed`,
+        );
         return;
       }
     }

@@ -76,30 +76,30 @@ export class InMemoryUserRepository implements UserRepository, OnModuleInit {
   }
 
   async findById(id: string): Promise<User | null> {
-    return this.users.get(id) ?? null;
+    return Promise.resolve(this.users.get(id) ?? null);
   }
 
   async findByContractNumber(contractNumber: string): Promise<User | null> {
     for (const user of this.users.values()) {
       if (user.contractNumber === contractNumber) {
-        return user;
+        return Promise.resolve(user);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
 
   async findByEmail(email: string): Promise<User | null> {
     for (const user of this.users.values()) {
       if (user.email === email) {
-        return user;
+        return Promise.resolve(user);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
 
   async save(user: User): Promise<User> {
     this.users.set(user.id, user);
-    return user;
+    return Promise.resolve(user);
   }
 
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
@@ -107,5 +107,6 @@ export class InMemoryUserRepository implements UserRepository, OnModuleInit {
     if (user) {
       user.passwordHash = passwordHash;
     }
+    return Promise.resolve();
   }
 }

@@ -10,9 +10,9 @@ export class InitQrLoginUseCase {
 
   async execute(): Promise<{ qrToken: string; expiresIn: number }> {
     this.logger.log('QR login init - placeholder');
-    return {
+    return Promise.resolve({
       qrToken: 'qr-placeholder-token',
       expiresIn: 300,
-    };
+    });
   }
 }
