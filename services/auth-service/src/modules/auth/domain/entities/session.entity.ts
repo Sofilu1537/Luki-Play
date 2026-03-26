@@ -11,6 +11,7 @@ export class Session {
   refreshTokenHash: string;
   readonly expiresAt: Date;
   readonly createdAt: Date;
+  revokedAt: Date | null;
 
   constructor(props: {
     id: string;
@@ -20,6 +21,7 @@ export class Session {
     refreshTokenHash: string;
     expiresAt: Date;
     createdAt: Date;
+    revokedAt?: Date | null;
   }) {
     this.id = props.id;
     this.userId = props.userId;
@@ -28,9 +30,14 @@ export class Session {
     this.refreshTokenHash = props.refreshTokenHash;
     this.expiresAt = props.expiresAt;
     this.createdAt = props.createdAt;
+    this.revokedAt = props.revokedAt ?? null;
   }
 
   isExpired(): boolean {
     return new Date() > this.expiresAt;
+  }
+
+  isRevoked(): boolean {
+    return this.revokedAt !== null;
   }
 }

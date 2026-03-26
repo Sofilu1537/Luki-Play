@@ -76,7 +76,10 @@ describe('LoginCmsUseCase', () => {
       deviceId: 'cms-browser-1',
     });
 
-    expect(result).toEqual(tokenPair);
+    expect(result.accessToken).toBe('access-token');
+    expect(result.refreshToken).toBe('refresh-token');
+    expect(result.canAccessOtt).toBe(true);
+    expect(result.restrictionMessage).toBeNull();
     expect(mockUserRepo.findByEmail).toHaveBeenCalledWith('admin@lukiplay.com');
     expect(mockHashService.compare).toHaveBeenCalledWith(
       'securePass123',

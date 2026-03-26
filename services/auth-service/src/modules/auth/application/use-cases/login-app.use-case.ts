@@ -8,11 +8,10 @@ import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
 import type { UserRepository } from '../../domain/interfaces/user.repository';
 import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
 import type { SessionRepository } from '../../domain/interfaces/session.repository';
+import { ACCOUNT_REPOSITORY } from '../../domain/interfaces/account.repository';
+import type { AccountRepository } from '../../domain/interfaces/account.repository';
 import { TOKEN_SERVICE } from '../../domain/interfaces/token.service';
-import type {
-  TokenService,
-  TokenPair,
-} from '../../domain/interfaces/token.service';
+import type { TokenService } from '../../domain/interfaces/token.service';
 import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
 import type { HashService } from '../../domain/interfaces/hash.service';
 import { BILLING_GATEWAY } from '../../../billing/domain/interfaces/billing.gateway';
@@ -20,6 +19,7 @@ import type { BillingGateway } from '../../../billing/domain/interfaces/billing.
 import { Audience, Session } from '../../domain/entities/session.entity';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
 import { LoginAppDto } from '../dto/login-app.dto';
+import { AuthTokensResponse } from '../dto/auth-response.dto';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -29,12 +29,13 @@ export class LoginAppUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
     @Inject(SESSION_REPOSITORY) private readonly sessionRepo: SessionRepository,
+    @Inject(ACCOUNT_REPOSITORY) private readonly accountRepo: AccountRepository,
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
     @Inject(HASH_SERVICE) private readonly hashService: HashService,
     @Inject(BILLING_GATEWAY) private readonly billingGateway: BillingGateway,
   ) {}
 
-  async execute(dto: LoginAppDto): Promise<TokenPair> {
+  async execute(dto: LoginAppDto): Promise<AuthTokensResponse> {
     const user = await this.userRepo.findByContractNumber(dto.contractNumber);
     if (!user) {
       this.logger.warn(
@@ -61,19 +62,31 @@ export class LoginAppUseCase {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Validate subscription via billing gateway
+    // Evaluate OTT access via Account entity (ISP status / OTT-only subscription)
+    let canAccessOtt = true;
+    let restrictionMessage: string | null = null;
     let entitlements: string[] = [];
+
     if (user.accountId) {
-      const subscription = await this.billingGateway.getSubscriptionStatus(
-        user.accountId,
-      );
-      if (!subscription.canPlay) {
-        this.logger.warn(
-          `Login failed: subscription not active for account ${user.accountId}`,
-        );
-        throw new UnauthorizedException('Subscription is not active');
+      const account = await this.accountRepo.findById(user.accountId);
+      if (account) {
+        canAccessOtt = account.canAccessOtt;
+        restrictionMessage = account.restrictionMessage;
       }
-      entitlements = subscription.entitlements;
+
+      // Fetch entitlements from billing (only if OTT access allowed)
+      if (canAccessOtt) {
+        const subscription = await this.billingGateway.getSubscriptionStatus(
+          user.accountId,
+        );
+        entitlements = subscription.entitlements;
+      }
+    }
+
+    if (!canAccessOtt) {
+      this.logger.warn(
+        `User ${user.id} authenticated but OTT access restricted: ${restrictionMessage}`,
+      );
     }
 
     const permissions = getPermissionsForRole(user.role);
@@ -103,6 +116,11 @@ export class LoginAppUseCase {
     await this.sessionRepo.save(session);
 
     this.logger.log(`User ${user.id} logged in via APP`);
-    return tokenPair;
+    return {
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
+      canAccessOtt,
+      restrictionMessage,
+    };
   }
 }

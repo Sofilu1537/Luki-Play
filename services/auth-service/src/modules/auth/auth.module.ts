@@ -7,15 +7,19 @@ import type { StringValue } from 'ms';
 // Domain interfaces
 import { USER_REPOSITORY } from './domain/interfaces/user.repository';
 import { SESSION_REPOSITORY } from './domain/interfaces/session.repository';
+import { ACCOUNT_REPOSITORY } from './domain/interfaces/account.repository';
 import { TOKEN_SERVICE } from './domain/interfaces/token.service';
 import { HASH_SERVICE } from './domain/interfaces/hash.service';
+import { OTP_SERVICE } from './domain/interfaces/otp.service';
 
 // Infrastructure
 import { InMemoryUserRepository } from './infrastructure/repositories/in-memory-user.repository';
 import { InMemorySessionRepository } from './infrastructure/repositories/in-memory-session.repository';
+import { InMemoryAccountRepository } from './infrastructure/repositories/in-memory-account.repository';
 import { JwtTokenService } from './infrastructure/jwt/jwt-token.service';
 import { JwtStrategy } from './infrastructure/jwt/jwt.strategy';
 import { BcryptHashService } from './infrastructure/persistence/bcrypt-hash.service';
+import { MockOtpService } from './infrastructure/persistence/mock-otp.service';
 
 // Use Cases
 import { LoginAppUseCase } from './application/use-cases/login-app.use-case';
@@ -26,6 +30,8 @@ import { GetCurrentUserUseCase } from './application/use-cases/get-current-user.
 import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
 import { ListActiveSessionsUseCase } from './application/use-cases/list-active-sessions.use-case';
 import { RevokeSessionUseCase } from './application/use-cases/revoke-session.use-case';
+import { RequestOtpUseCase } from './application/use-cases/request-otp.use-case';
+import { VerifyOtpUseCase } from './application/use-cases/verify-otp.use-case';
 import { InitQrLoginUseCase } from './application/use-cases/init-qr-login.use-case';
 import { ConfirmQrLoginUseCase } from './application/use-cases/confirm-qr-login.use-case';
 
@@ -60,8 +66,10 @@ import { CrmModule } from '../crm/crm.module';
     // Infrastructure bindings
     { provide: USER_REPOSITORY, useClass: InMemoryUserRepository },
     { provide: SESSION_REPOSITORY, useClass: InMemorySessionRepository },
+    { provide: ACCOUNT_REPOSITORY, useClass: InMemoryAccountRepository },
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },
     { provide: HASH_SERVICE, useClass: BcryptHashService },
+    { provide: OTP_SERVICE, useClass: MockOtpService },
     JwtStrategy,
 
     // Use Cases
@@ -73,9 +81,11 @@ import { CrmModule } from '../crm/crm.module';
     ChangePasswordUseCase,
     ListActiveSessionsUseCase,
     RevokeSessionUseCase,
+    RequestOtpUseCase,
+    VerifyOtpUseCase,
     InitQrLoginUseCase,
     ConfirmQrLoginUseCase,
   ],
-  exports: [TOKEN_SERVICE, HASH_SERVICE, USER_REPOSITORY],
+  exports: [TOKEN_SERVICE, HASH_SERVICE, USER_REPOSITORY, ACCOUNT_REPOSITORY],
 })
 export class AuthModule {}

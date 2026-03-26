@@ -6,6 +6,14 @@ export class AuthTokensResponse {
 
   @ApiProperty()
   refreshToken: string;
+
+  @ApiProperty({ description: 'Whether the user can access OTT content' })
+  canAccessOtt: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Restriction message if OTT access is blocked',
+  })
+  restrictionMessage: string | null;
 }
 
 export class UserProfileResponse {
@@ -26,6 +34,18 @@ export class UserProfileResponse {
 
   @ApiPropertyOptional()
   accountId: string | null;
+
+  @ApiPropertyOptional()
+  contractType: string | null;
+
+  @ApiPropertyOptional()
+  serviceStatus: string | null;
+
+  @ApiProperty()
+  canAccessOtt: boolean;
+
+  @ApiPropertyOptional()
+  restrictionMessage: string | null;
 
   @ApiProperty({ type: [String] })
   permissions: string[];

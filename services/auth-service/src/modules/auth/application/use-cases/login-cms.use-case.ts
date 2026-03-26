@@ -9,15 +9,13 @@ import type { UserRepository } from '../../domain/interfaces/user.repository';
 import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
 import type { SessionRepository } from '../../domain/interfaces/session.repository';
 import { TOKEN_SERVICE } from '../../domain/interfaces/token.service';
-import type {
-  TokenService,
-  TokenPair,
-} from '../../domain/interfaces/token.service';
+import type { TokenService } from '../../domain/interfaces/token.service';
 import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
 import type { HashService } from '../../domain/interfaces/hash.service';
 import { Audience, Session } from '../../domain/entities/session.entity';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
 import { LoginCmsDto } from '../dto/login-cms.dto';
+import { AuthTokensResponse } from '../dto/auth-response.dto';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -31,7 +29,7 @@ export class LoginCmsUseCase {
     @Inject(HASH_SERVICE) private readonly hashService: HashService,
   ) {}
 
-  async execute(dto: LoginCmsDto): Promise<TokenPair> {
+  async execute(dto: LoginCmsDto): Promise<AuthTokensResponse> {
     const user = await this.userRepo.findByEmail(dto.email);
     if (!user) {
       this.logger.warn(`CMS login failed: email not found ${dto.email}`);
@@ -83,6 +81,11 @@ export class LoginCmsUseCase {
     await this.sessionRepo.save(session);
 
     this.logger.log(`CMS user ${user.id} logged in`);
-    return tokenPair;
+    return {
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
+      canAccessOtt: true,
+      restrictionMessage: null,
+    };
   }
 }

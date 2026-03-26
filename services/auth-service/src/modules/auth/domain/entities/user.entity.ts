@@ -14,6 +14,7 @@ export class User {
   readonly id: string;
   readonly contractNumber: string | null;
   readonly email: string;
+  readonly phone: string | null;
   passwordHash: string;
   readonly role: UserRole;
   status: UserStatus;
@@ -24,6 +25,7 @@ export class User {
     id: string;
     contractNumber: string | null;
     email: string;
+    phone?: string | null;
     passwordHash: string;
     role: UserRole;
     status: UserStatus;
@@ -33,6 +35,7 @@ export class User {
     this.id = props.id;
     this.contractNumber = props.contractNumber;
     this.email = props.email;
+    this.phone = props.phone ?? null;
     this.passwordHash = props.passwordHash;
     this.role = props.role;
     this.status = props.status;

@@ -6,5 +6,7 @@ export { GetCurrentUserUseCase } from './get-current-user.use-case';
 export { ChangePasswordUseCase } from './change-password.use-case';
 export { ListActiveSessionsUseCase } from './list-active-sessions.use-case';
 export { RevokeSessionUseCase } from './revoke-session.use-case';
+export { RequestOtpUseCase } from './request-otp.use-case';
+export { VerifyOtpUseCase } from './verify-otp.use-case';
 export { InitQrLoginUseCase } from './init-qr-login.use-case';
 export { ConfirmQrLoginUseCase } from './confirm-qr-login.use-case';

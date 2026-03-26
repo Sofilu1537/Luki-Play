@@ -9,17 +9,19 @@ import type { SessionRepository } from '../../domain/interfaces/session.reposito
 import { TOKEN_SERVICE } from '../../domain/interfaces/token.service';
 import type {
   TokenService,
-  TokenPair,
   JwtPayload,
 } from '../../domain/interfaces/token.service';
 import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
 import type { HashService } from '../../domain/interfaces/hash.service';
 import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
 import type { UserRepository } from '../../domain/interfaces/user.repository';
+import { ACCOUNT_REPOSITORY } from '../../domain/interfaces/account.repository';
+import type { AccountRepository } from '../../domain/interfaces/account.repository';
 import { Audience, Session } from '../../domain/entities/session.entity';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
 import { BILLING_GATEWAY } from '../../../billing/domain/interfaces/billing.gateway';
 import type { BillingGateway } from '../../../billing/domain/interfaces/billing.gateway';
+import { AuthTokensResponse } from '../dto/auth-response.dto';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -31,10 +33,11 @@ export class RefreshTokenUseCase {
     @Inject(TOKEN_SERVICE) private readonly tokenService: TokenService,
     @Inject(HASH_SERVICE) private readonly hashService: HashService,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
+    @Inject(ACCOUNT_REPOSITORY) private readonly accountRepo: AccountRepository,
     @Inject(BILLING_GATEWAY) private readonly billingGateway: BillingGateway,
   ) {}
 
-  async execute(refreshToken: string): Promise<TokenPair> {
+  async execute(refreshToken: string): Promise<AuthTokensResponse> {
     let payload: JwtPayload;
     try {
       payload = await this.tokenService.verifyRefreshToken(refreshToken);
@@ -77,11 +80,22 @@ export class RefreshTokenUseCase {
     const permissions = getPermissionsForRole(user.role);
 
     let entitlements: string[] = [];
+    let canAccessOtt = true;
+    let restrictionMessage: string | null = null;
+
     if (user.isClient() && user.accountId) {
-      const subscription = await this.billingGateway.getSubscriptionStatus(
-        user.accountId,
-      );
-      entitlements = subscription.entitlements;
+      const account = await this.accountRepo.findById(user.accountId);
+      if (account) {
+        canAccessOtt = account.canAccessOtt;
+        restrictionMessage = account.restrictionMessage;
+      }
+
+      if (canAccessOtt) {
+        const subscription = await this.billingGateway.getSubscriptionStatus(
+          user.accountId,
+        );
+        entitlements = subscription.entitlements;
+      }
     }
 
     // Rotate refresh token
@@ -116,6 +130,11 @@ export class RefreshTokenUseCase {
     await this.sessionRepo.save(newSession);
 
     this.logger.log(`Token refreshed for user ${user.id}`);
-    return newTokenPair;
+    return {
+      accessToken: newTokenPair.accessToken,
+      refreshToken: newTokenPair.refreshToken,
+      canAccessOtt,
+      restrictionMessage,
+    };
   }
 }

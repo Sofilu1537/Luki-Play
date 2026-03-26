@@ -17,10 +17,12 @@ export class InMemoryUserRepository implements UserRepository, OnModuleInit {
     const hash = await bcrypt.hash('password123', 12);
 
     const seedUsers: User[] = [
+      // ISP customers
       new User({
         id: 'usr-001',
         contractNumber: 'CONTRACT-001',
         email: 'juan@example.com',
+        phone: '+57300111222',
         passwordHash: hash,
         role: UserRole.CLIENTE,
         status: UserStatus.ACTIVE,
@@ -31,6 +33,7 @@ export class InMemoryUserRepository implements UserRepository, OnModuleInit {
         id: 'usr-002',
         contractNumber: 'CONTRACT-002',
         email: 'maria@example.com',
+        phone: '+57300333444',
         passwordHash: hash,
         role: UserRole.CLIENTE,
         status: UserStatus.ACTIVE,
@@ -41,12 +44,38 @@ export class InMemoryUserRepository implements UserRepository, OnModuleInit {
         id: 'usr-003',
         contractNumber: 'CONTRACT-003',
         email: 'carlos@example.com',
+        phone: '+57300555666',
         passwordHash: hash,
         role: UserRole.CLIENTE,
         status: UserStatus.ACTIVE,
         accountId: 'acc-003',
         createdAt: new Date(),
       }),
+      // ISP customer with CORTESIA state
+      new User({
+        id: 'usr-004',
+        contractNumber: 'CONTRACT-004',
+        email: 'ana@example.com',
+        phone: '+57300777888',
+        passwordHash: hash,
+        role: UserRole.CLIENTE,
+        status: UserStatus.ACTIVE,
+        accountId: 'acc-004',
+        createdAt: new Date(),
+      }),
+      // OTT-only customer (no ISP service)
+      new User({
+        id: 'usr-ott-001',
+        contractNumber: 'OTT-000001',
+        email: 'pedro@example.com',
+        phone: '+57300999000',
+        passwordHash: hash,
+        role: UserRole.CLIENTE,
+        status: UserStatus.ACTIVE,
+        accountId: 'acc-ott-001',
+        createdAt: new Date(),
+      }),
+      // CMS users
       new User({
         id: 'usr-admin-001',
         contractNumber: null,

@@ -23,10 +23,13 @@ import { GetCurrentUserUseCase } from '../../application/use-cases/get-current-u
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case';
 import { ListActiveSessionsUseCase } from '../../application/use-cases/list-active-sessions.use-case';
 import { RevokeSessionUseCase } from '../../application/use-cases/revoke-session.use-case';
+import { RequestOtpUseCase } from '../../application/use-cases/request-otp.use-case';
+import { VerifyOtpUseCase } from '../../application/use-cases/verify-otp.use-case';
 import { LoginAppDto } from '../../application/dto/login-app.dto';
 import { LoginCmsDto } from '../../application/dto/login-cms.dto';
 import { RefreshTokenDto } from '../../application/dto/refresh-token.dto';
 import { ChangePasswordDto } from '../../application/dto/change-password.dto';
+import { RequestOtpDto, VerifyOtpDto } from '../../application/dto/otp.dto';
 import {
   AuthTokensResponse,
   UserProfileResponse,
@@ -49,6 +52,8 @@ export class AuthController {
     private readonly changePasswordUseCase: ChangePasswordUseCase,
     private readonly listActiveSessionsUseCase: ListActiveSessionsUseCase,
     private readonly revokeSessionUseCase: RevokeSessionUseCase,
+    private readonly requestOtpUseCase: RequestOtpUseCase,
+    private readonly verifyOtpUseCase: VerifyOtpUseCase,
   ) {}
 
   @Post('app/login')
@@ -138,5 +143,23 @@ export class AuthController {
   ): Promise<MessageResponse> {
     await this.revokeSessionUseCase.execute(user.sub, sessionId);
     return { message: 'Session revoked successfully' };
+  }
+
+  @Post('otp/request')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request OTP code sent via email' })
+  @ApiResponse({ status: 200, type: MessageResponse })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async requestOtp(@Body() dto: RequestOtpDto): Promise<MessageResponse> {
+    return this.requestOtpUseCase.execute(dto);
+  }
+
+  @Post('otp/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify OTP code' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 401, description: 'Invalid or expired OTP' })
+  async verifyOtp(@Body() dto: VerifyOtpDto): Promise<{ verified: boolean }> {
+    return this.verifyOtpUseCase.execute(dto);
   }
 }

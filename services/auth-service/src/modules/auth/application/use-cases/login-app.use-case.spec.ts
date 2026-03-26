@@ -3,8 +3,12 @@ import { UnauthorizedException } from '@nestjs/common';
 import { LoginAppUseCase } from './login-app.use-case';
 import { User, UserRole, UserStatus } from '../../domain/entities/user.entity';
 import { Audience } from '../../domain/entities/session.entity';
-
-jest.mock('uuid', () => ({ v4: () => 'test-uuid' }));
+import {
+  Account,
+  ContractType,
+  ServiceStatus,
+  SubscriptionStatus,
+} from '../../domain/entities/account.entity';
 
 describe('LoginAppUseCase', () => {
   const mockUserRepo = {
@@ -24,6 +28,12 @@ describe('LoginAppUseCase', () => {
     deleteAllByUserId: jest.fn(),
   };
 
+  const mockAccountRepo = {
+    findById: jest.fn(),
+    findByContractNumber: jest.fn(),
+    save: jest.fn(),
+  };
+
   const mockTokenService = {
     generateTokenPair: jest.fn(),
     verifyAccessToken: jest.fn(),
@@ -38,6 +48,7 @@ describe('LoginAppUseCase', () => {
   const mockBillingGateway = {
     validateContract: jest.fn(),
     getSubscriptionStatus: jest.fn(),
+    getCustomerRecord: jest.fn(),
   };
 
   let useCase: LoginAppUseCase;
@@ -53,6 +64,28 @@ describe('LoginAppUseCase', () => {
     createdAt: new Date(),
   });
 
+  const activeAccount = new Account({
+    id: 'account-1',
+    contractNumber: 'CONTRACT-001',
+    contractType: ContractType.ISP,
+    isIspCustomer: true,
+    planId: 'plan-basic',
+    subscriptionStatus: SubscriptionStatus.ACTIVE,
+    serviceStatus: ServiceStatus.ACTIVO,
+    maxDevices: 2,
+  });
+
+  const suspendedAccount = new Account({
+    id: 'account-1',
+    contractNumber: 'CONTRACT-001',
+    contractType: ContractType.ISP,
+    isIspCustomer: true,
+    planId: 'plan-basic',
+    subscriptionStatus: SubscriptionStatus.SUSPENDED,
+    serviceStatus: ServiceStatus.SUSPENDIDO,
+    maxDevices: 2,
+  });
+
   const tokenPair = {
     accessToken: 'access-token',
     refreshToken: 'refresh-token',
@@ -63,6 +96,7 @@ describe('LoginAppUseCase', () => {
     useCase = new LoginAppUseCase(
       mockUserRepo as any,
       mockSessionRepo as any,
+      mockAccountRepo as any,
       mockTokenService as any,
       mockHashService as any,
       mockBillingGateway as any,
@@ -72,6 +106,7 @@ describe('LoginAppUseCase', () => {
   it('should login successfully with valid contract and password', async () => {
     mockUserRepo.findByContractNumber.mockResolvedValue(activeClient);
     mockHashService.compare.mockResolvedValue(true);
+    mockAccountRepo.findById.mockResolvedValue(activeAccount);
     mockBillingGateway.getSubscriptionStatus.mockResolvedValue({
       canPlay: true,
       entitlements: ['hd', '4k'],
@@ -86,7 +121,10 @@ describe('LoginAppUseCase', () => {
       deviceId: 'device-1',
     });
 
-    expect(result).toEqual(tokenPair);
+    expect(result.accessToken).toBe('access-token');
+    expect(result.refreshToken).toBe('refresh-token');
+    expect(result.canAccessOtt).toBe(true);
+    expect(result.restrictionMessage).toBeNull();
     expect(mockUserRepo.findByContractNumber).toHaveBeenCalledWith(
       'CONTRACT-001',
     );
@@ -94,6 +132,7 @@ describe('LoginAppUseCase', () => {
       'password123',
       'hashed-pw',
     );
+    expect(mockAccountRepo.findById).toHaveBeenCalledWith('account-1');
     expect(mockBillingGateway.getSubscriptionStatus).toHaveBeenCalledWith(
       'account-1',
     );
@@ -150,20 +189,25 @@ describe('LoginAppUseCase', () => {
     ).rejects.toThrow(UnauthorizedException);
   });
 
-  it('should throw when subscription is not active', async () => {
+  it('should allow login but restrict OTT when ISP service is SUSPENDIDO', async () => {
     mockUserRepo.findByContractNumber.mockResolvedValue(activeClient);
     mockHashService.compare.mockResolvedValue(true);
-    mockBillingGateway.getSubscriptionStatus.mockResolvedValue({
-      canPlay: false,
-      entitlements: [],
+    mockAccountRepo.findById.mockResolvedValue(suspendedAccount);
+    mockTokenService.generateTokenPair.mockResolvedValue(tokenPair);
+    mockHashService.hash.mockResolvedValue('hashed-refresh');
+    mockSessionRepo.save.mockResolvedValue(undefined);
+
+    const result = await useCase.execute({
+      contractNumber: 'CONTRACT-001',
+      password: 'password123',
+      deviceId: 'device-1',
     });
 
-    await expect(
-      useCase.execute({
-        contractNumber: 'CONTRACT-001',
-        password: 'password123',
-        deviceId: 'device-1',
-      }),
-    ).rejects.toThrow(UnauthorizedException);
+    // Auth succeeds but OTT access is restricted
+    expect(result.accessToken).toBe('access-token');
+    expect(result.canAccessOtt).toBe(false);
+    expect(result.restrictionMessage).toContain('SUSPENDIDO');
+    // Should NOT fetch entitlements when OTT is restricted
+    expect(mockBillingGateway.getSubscriptionStatus).not.toHaveBeenCalled();
   });
 });
