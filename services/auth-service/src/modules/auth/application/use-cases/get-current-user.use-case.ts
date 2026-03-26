@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { USER_REPOSITORY, UserRepository } from '../../domain/interfaces/user.repository';
-import { BILLING_GATEWAY, BillingGateway } from '../../../billing/domain/interfaces/billing.gateway';
+import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
+import type { UserRepository } from '../../domain/interfaces/user.repository';
+import { BILLING_GATEWAY } from '../../../billing/domain/interfaces/billing.gateway';
+import type { BillingGateway } from '../../../billing/domain/interfaces/billing.gateway';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
 import { UserProfileResponse } from '../dto/auth-response.dto';
 

@@ -35,7 +35,7 @@ import {
 } from '../../application/dto/auth-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
-import { JwtPayload } from '../../domain/interfaces/token.service';
+import type { JwtPayload } from '../../domain/interfaces/token.service';
 
 @ApiTags('Auth')
 @Controller('auth')

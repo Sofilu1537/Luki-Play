@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { SESSION_REPOSITORY, SessionRepository } from '../../domain/interfaces/session.repository';
-import { HASH_SERVICE, HashService } from '../../domain/interfaces/hash.service';
+import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
+import type { SessionRepository } from '../../domain/interfaces/session.repository';
+import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
+import type { HashService } from '../../domain/interfaces/hash.service';
 
 @Injectable()
 export class LogoutUseCase {

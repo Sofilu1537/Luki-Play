@@ -1,7 +1,10 @@
 import { Inject, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
-import { USER_REPOSITORY, UserRepository } from '../../domain/interfaces/user.repository';
-import { HASH_SERVICE, HashService } from '../../domain/interfaces/hash.service';
-import { SESSION_REPOSITORY, SessionRepository } from '../../domain/interfaces/session.repository';
+import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
+import type { UserRepository } from '../../domain/interfaces/user.repository';
+import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
+import type { HashService } from '../../domain/interfaces/hash.service';
+import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
+import type { SessionRepository } from '../../domain/interfaces/session.repository';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 
 @Injectable()

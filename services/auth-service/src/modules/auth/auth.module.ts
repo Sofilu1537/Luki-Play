@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { StringValue } from 'ms';
 
 // Domain interfaces
 import { USER_REPOSITORY } from './domain/interfaces/user.repository';
@@ -44,7 +45,7 @@ import { CrmModule } from '../crm/crm.module';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_ACCESS_SECRET', 'dev-access-secret'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_ACCESS_EXPIRY', '15m'),
+          expiresIn: configService.get<StringValue>('JWT_ACCESS_EXPIRY', '15m'),
         },
       }),
     }),

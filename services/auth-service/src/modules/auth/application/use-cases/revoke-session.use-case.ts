@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
-import { SESSION_REPOSITORY, SessionRepository } from '../../domain/interfaces/session.repository';
+import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
+import type { SessionRepository } from '../../domain/interfaces/session.repository';
 
 @Injectable()
 export class RevokeSessionUseCase {

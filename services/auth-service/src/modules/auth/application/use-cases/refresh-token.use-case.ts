@@ -1,11 +1,16 @@
 import { Inject, Injectable, UnauthorizedException, Logger } from '@nestjs/common';
-import { SESSION_REPOSITORY, SessionRepository } from '../../domain/interfaces/session.repository';
-import { TOKEN_SERVICE, TokenService, TokenPair, JwtPayload } from '../../domain/interfaces/token.service';
-import { HASH_SERVICE, HashService } from '../../domain/interfaces/hash.service';
-import { USER_REPOSITORY, UserRepository } from '../../domain/interfaces/user.repository';
+import { SESSION_REPOSITORY } from '../../domain/interfaces/session.repository';
+import type { SessionRepository } from '../../domain/interfaces/session.repository';
+import { TOKEN_SERVICE } from '../../domain/interfaces/token.service';
+import type { TokenService, TokenPair, JwtPayload } from '../../domain/interfaces/token.service';
+import { HASH_SERVICE } from '../../domain/interfaces/hash.service';
+import type { HashService } from '../../domain/interfaces/hash.service';
+import { USER_REPOSITORY } from '../../domain/interfaces/user.repository';
+import type { UserRepository } from '../../domain/interfaces/user.repository';
 import { Audience, Session } from '../../domain/entities/session.entity';
 import { getPermissionsForRole } from '../../../access-control/domain/permissions';
-import { BILLING_GATEWAY, BillingGateway } from '../../../billing/domain/interfaces/billing.gateway';
+import { BILLING_GATEWAY } from '../../../billing/domain/interfaces/billing.gateway';
+import type { BillingGateway } from '../../../billing/domain/interfaces/billing.gateway';
 import { UserRole } from '../../domain/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 
