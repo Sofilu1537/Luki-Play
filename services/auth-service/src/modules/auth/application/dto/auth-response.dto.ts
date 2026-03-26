@@ -1,5 +1,28 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export class LoginChallengeResponse {
+  @ApiProperty({
+    description: 'Whether OTP verification is required to complete login',
+  })
+  otpRequired: boolean;
+
+  @ApiProperty({
+    description: 'Short-lived token proving credentials were validated',
+  })
+  loginToken: string;
+
+  @ApiProperty({ description: 'Message indicating OTP was sent' })
+  message: string;
+
+  @ApiProperty({ description: 'Whether the user can access OTT content' })
+  canAccessOtt: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Restriction message if OTT access is blocked',
+  })
+  restrictionMessage: string | null;
+}
+
 export class AuthTokensResponse {
   @ApiProperty()
   accessToken: string;

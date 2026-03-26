@@ -23,7 +23,9 @@ describe('Auth (e2e)', () => {
     await app.close();
   });
 
-  it('POST /auth/app/login - success with canAccessOtt', async () => {
+  // ── Two-phase app login flow ──────────────────────────────────────
+
+  it('POST /auth/app/login - returns OTP challenge (no JWT)', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/app/login')
       .send({
@@ -33,13 +35,66 @@ describe('Auth (e2e)', () => {
       })
       .expect(200);
 
+    // Phase 1: should return challenge, NOT JWT tokens
+    expect(res.body.otpRequired).toBe(true);
+    expect(res.body.loginToken).toBeDefined();
+    expect(res.body.message).toContain('OTP');
+    expect(res.body.canAccessOtt).toBe(true);
+    expect(res.body.restrictionMessage).toBeNull();
+    // Should NOT include JWT tokens
+    expect(res.body.accessToken).toBeUndefined();
+    expect(res.body.refreshToken).toBeUndefined();
+  });
+
+  it('POST /auth/app/verify-otp - completes login with JWT after OTP', async () => {
+    // Phase 1: Get login challenge
+    const loginRes = await request(app.getHttpServer())
+      .post('/auth/app/login')
+      .send({
+        contractNumber: 'CONTRACT-001',
+        password: 'password123',
+        deviceId: 'test-device-otp',
+      })
+      .expect(200);
+
+    // Phase 2: Complete login with OTP (mock code 123456)
+    const res = await request(app.getHttpServer())
+      .post('/auth/app/verify-otp')
+      .send({
+        loginToken: loginRes.body.loginToken,
+        code: '123456',
+      })
+      .expect(200);
+
+    // Now should have JWT tokens
     expect(res.body.accessToken).toBeDefined();
     expect(res.body.refreshToken).toBeDefined();
     expect(res.body.canAccessOtt).toBe(true);
     expect(res.body.restrictionMessage).toBeNull();
   });
 
-  it('POST /auth/app/login - suspended ISP user can login but OTT restricted', async () => {
+  it('POST /auth/app/verify-otp - fails with wrong OTP', async () => {
+    // Phase 1: Get login challenge
+    const loginRes = await request(app.getHttpServer())
+      .post('/auth/app/login')
+      .send({
+        contractNumber: 'CONTRACT-001',
+        password: 'password123',
+        deviceId: 'test-device-wrong-otp',
+      })
+      .expect(200);
+
+    // Phase 2: Wrong OTP
+    await request(app.getHttpServer())
+      .post('/auth/app/verify-otp')
+      .send({
+        loginToken: loginRes.body.loginToken,
+        code: '999999',
+      })
+      .expect(401);
+  });
+
+  it('POST /auth/app/login - suspended ISP user gets challenge with OTT restriction', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/app/login')
       .send({
@@ -49,12 +104,38 @@ describe('Auth (e2e)', () => {
       })
       .expect(200);
 
+    expect(res.body.otpRequired).toBe(true);
+    expect(res.body.loginToken).toBeDefined();
+    expect(res.body.canAccessOtt).toBe(false);
+    expect(res.body.restrictionMessage).toContain('SUSPENDIDO');
+  });
+
+  it('full two-phase login for suspended user issues tokens with OTT restriction', async () => {
+    // Phase 1
+    const loginRes = await request(app.getHttpServer())
+      .post('/auth/app/login')
+      .send({
+        contractNumber: 'CONTRACT-003',
+        password: 'password123',
+        deviceId: 'test-device-suspended-2',
+      })
+      .expect(200);
+
+    // Phase 2
+    const res = await request(app.getHttpServer())
+      .post('/auth/app/verify-otp')
+      .send({
+        loginToken: loginRes.body.loginToken,
+        code: '123456',
+      })
+      .expect(200);
+
     expect(res.body.accessToken).toBeDefined();
     expect(res.body.canAccessOtt).toBe(false);
     expect(res.body.restrictionMessage).toContain('SUSPENDIDO');
   });
 
-  it('POST /auth/app/login - OTT-only customer can login', async () => {
+  it('POST /auth/app/login - OTT-only customer gets challenge', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/app/login')
       .send({
@@ -64,12 +145,12 @@ describe('Auth (e2e)', () => {
       })
       .expect(200);
 
-    expect(res.body.accessToken).toBeDefined();
+    expect(res.body.otpRequired).toBe(true);
+    expect(res.body.loginToken).toBeDefined();
     expect(res.body.canAccessOtt).toBe(true);
-    expect(res.body.restrictionMessage).toBeNull();
   });
 
-  it('POST /auth/app/login - CORTESIA ISP user has OTT access', async () => {
+  it('POST /auth/app/login - CORTESIA ISP user gets challenge with OTT access', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/app/login')
       .send({
@@ -79,9 +160,8 @@ describe('Auth (e2e)', () => {
       })
       .expect(200);
 
-    expect(res.body.accessToken).toBeDefined();
+    expect(res.body.otpRequired).toBe(true);
     expect(res.body.canAccessOtt).toBe(true);
-    expect(res.body.restrictionMessage).toBeNull();
   });
 
   it('POST /auth/app/login - invalid credentials', () => {
@@ -95,7 +175,9 @@ describe('Auth (e2e)', () => {
       .expect(401);
   });
 
-  it('POST /auth/cms/login - success', async () => {
+  // ── CMS login (no OTP required) ──────────────────────────────────
+
+  it('POST /auth/cms/login - success (direct JWT, no OTP)', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/cms/login')
       .send({
@@ -110,22 +192,33 @@ describe('Auth (e2e)', () => {
     expect(res.body.canAccessOtt).toBe(true);
   });
 
+  // ── Authenticated endpoints ───────────────────────────────────────
+
   it('GET /auth/me - requires authentication', () => {
     return request(app.getHttpServer()).get('/auth/me').expect(401);
   });
 
-  it('GET /auth/me - returns user profile with ISP info', async () => {
+  it('GET /auth/me - returns user profile after full two-phase login', async () => {
+    // Phase 1
     const loginRes = await request(app.getHttpServer())
       .post('/auth/app/login')
       .send({
         contractNumber: 'CONTRACT-001',
         password: 'password123',
-        deviceId: 'test-device-002',
+        deviceId: 'test-device-me',
+      });
+
+    // Phase 2
+    const verifyRes = await request(app.getHttpServer())
+      .post('/auth/app/verify-otp')
+      .send({
+        loginToken: loginRes.body.loginToken,
+        code: '123456',
       });
 
     const res = await request(app.getHttpServer())
       .get('/auth/me')
-      .set('Authorization', `Bearer ${loginRes.body.accessToken}`)
+      .set('Authorization', `Bearer ${verifyRes.body.accessToken}`)
       .expect(200);
 
     expect(res.body.id).toBe('usr-001');
@@ -136,18 +229,27 @@ describe('Auth (e2e)', () => {
     expect(res.body.permissions).toContain('app:playback');
   });
 
-  it('POST /auth/refresh - returns new tokens', async () => {
+  it('POST /auth/refresh - returns new tokens after full two-phase login', async () => {
+    // Phase 1
     const loginRes = await request(app.getHttpServer())
       .post('/auth/app/login')
       .send({
         contractNumber: 'CONTRACT-002',
         password: 'password123',
-        deviceId: 'test-device-003',
+        deviceId: 'test-device-refresh',
+      });
+
+    // Phase 2
+    const verifyRes = await request(app.getHttpServer())
+      .post('/auth/app/verify-otp')
+      .send({
+        loginToken: loginRes.body.loginToken,
+        code: '123456',
       });
 
     const res = await request(app.getHttpServer())
       .post('/auth/refresh')
-      .send({ refreshToken: loginRes.body.refreshToken })
+      .send({ refreshToken: verifyRes.body.refreshToken })
       .expect(200);
 
     expect(res.body.accessToken).toBeDefined();
@@ -155,7 +257,9 @@ describe('Auth (e2e)', () => {
     expect(res.body.canAccessOtt).toBe(true);
   });
 
-  it('POST /auth/otp/request - sends OTP', async () => {
+  // ── OTP standalone endpoints ──────────────────────────────────────
+
+  it('POST /auth/otp/request - sends OTP (resend)', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/otp/request')
       .send({ contractNumber: 'CONTRACT-001' })
@@ -164,14 +268,12 @@ describe('Auth (e2e)', () => {
     expect(res.body.message).toContain('OTP');
   });
 
-  it('POST /auth/otp/verify - verifies OTP', async () => {
-    // Request OTP first
+  it('POST /auth/otp/verify - verifies OTP standalone', async () => {
     await request(app.getHttpServer())
       .post('/auth/otp/request')
       .send({ contractNumber: 'CONTRACT-001' })
       .expect(200);
 
-    // Verify with mock code 123456
     const res = await request(app.getHttpServer())
       .post('/auth/otp/verify')
       .send({ contractNumber: 'CONTRACT-001', code: '123456' })
@@ -180,9 +282,18 @@ describe('Auth (e2e)', () => {
     expect(res.body.verified).toBe(true);
   });
 
+  // ── Validation ────────────────────────────────────────────────────
+
   it('POST /auth/app/login - validation error for missing fields', () => {
     return request(app.getHttpServer())
       .post('/auth/app/login')
+      .send({})
+      .expect(400);
+  });
+
+  it('POST /auth/app/verify-otp - validation error for missing fields', () => {
+    return request(app.getHttpServer())
+      .post('/auth/app/verify-otp')
       .send({})
       .expect(400);
   });

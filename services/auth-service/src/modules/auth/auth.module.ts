@@ -23,6 +23,7 @@ import { MockOtpService } from './infrastructure/persistence/mock-otp.service';
 
 // Use Cases
 import { LoginAppUseCase } from './application/use-cases/login-app.use-case';
+import { CompleteLoginUseCase } from './application/use-cases/complete-login.use-case';
 import { LoginCmsUseCase } from './application/use-cases/login-cms.use-case';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from './application/use-cases/logout.use-case';
@@ -74,6 +75,7 @@ import { CrmModule } from '../crm/crm.module';
 
     // Use Cases
     LoginAppUseCase,
+    CompleteLoginUseCase,
     LoginCmsUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,

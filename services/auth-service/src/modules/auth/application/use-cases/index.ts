@@ -1,4 +1,5 @@
 export { LoginAppUseCase } from './login-app.use-case';
+export { CompleteLoginUseCase } from './complete-login.use-case';
 export { LoginCmsUseCase } from './login-cms.use-case';
 export { RefreshTokenUseCase } from './refresh-token.use-case';
 export { LogoutUseCase } from './logout.use-case';

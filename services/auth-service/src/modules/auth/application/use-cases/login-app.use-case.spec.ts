@@ -2,7 +2,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { LoginAppUseCase } from './login-app.use-case';
 import { User, UserRole, UserStatus } from '../../domain/entities/user.entity';
-import { Audience } from '../../domain/entities/session.entity';
 import {
   Account,
   ContractType,
@@ -19,15 +18,6 @@ describe('LoginAppUseCase', () => {
     updatePassword: jest.fn(),
   };
 
-  const mockSessionRepo = {
-    findById: jest.fn(),
-    findByUserId: jest.fn(),
-    findByRefreshTokenHash: jest.fn(),
-    save: jest.fn(),
-    deleteById: jest.fn(),
-    deleteAllByUserId: jest.fn(),
-  };
-
   const mockAccountRepo = {
     findById: jest.fn(),
     findByContractNumber: jest.fn(),
@@ -38,6 +28,8 @@ describe('LoginAppUseCase', () => {
     generateTokenPair: jest.fn(),
     verifyAccessToken: jest.fn(),
     verifyRefreshToken: jest.fn(),
+    generateLoginChallenge: jest.fn(),
+    verifyLoginChallenge: jest.fn(),
   };
 
   const mockHashService = {
@@ -45,10 +37,9 @@ describe('LoginAppUseCase', () => {
     compare: jest.fn(),
   };
 
-  const mockBillingGateway = {
-    validateContract: jest.fn(),
-    getSubscriptionStatus: jest.fn(),
-    getCustomerRecord: jest.fn(),
+  const mockOtpService = {
+    generateAndSend: jest.fn(),
+    verify: jest.fn(),
   };
 
   let useCase: LoginAppUseCase;
@@ -86,34 +77,25 @@ describe('LoginAppUseCase', () => {
     maxDevices: 2,
   });
 
-  const tokenPair = {
-    accessToken: 'access-token',
-    refreshToken: 'refresh-token',
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
     useCase = new LoginAppUseCase(
       mockUserRepo as any,
-      mockSessionRepo as any,
       mockAccountRepo as any,
       mockTokenService as any,
       mockHashService as any,
-      mockBillingGateway as any,
+      mockOtpService as any,
     );
   });
 
-  it('should login successfully with valid contract and password', async () => {
+  it('should validate credentials and return login challenge with OTP sent', async () => {
     mockUserRepo.findByContractNumber.mockResolvedValue(activeClient);
     mockHashService.compare.mockResolvedValue(true);
     mockAccountRepo.findById.mockResolvedValue(activeAccount);
-    mockBillingGateway.getSubscriptionStatus.mockResolvedValue({
-      canPlay: true,
-      entitlements: ['hd', '4k'],
-    });
-    mockTokenService.generateTokenPair.mockResolvedValue(tokenPair);
-    mockHashService.hash.mockResolvedValue('hashed-refresh');
-    mockSessionRepo.save.mockResolvedValue(undefined);
+    mockOtpService.generateAndSend.mockResolvedValue(undefined);
+    mockTokenService.generateLoginChallenge.mockResolvedValue(
+      'login-challenge-token',
+    );
 
     const result = await useCase.execute({
       contractNumber: 'CONTRACT-001',
@@ -121,30 +103,30 @@ describe('LoginAppUseCase', () => {
       deviceId: 'device-1',
     });
 
-    expect(result.accessToken).toBe('access-token');
-    expect(result.refreshToken).toBe('refresh-token');
+    // Should return challenge, NOT JWT tokens
+    expect(result.otpRequired).toBe(true);
+    expect(result.loginToken).toBe('login-challenge-token');
+    expect(result.message).toContain('OTP');
     expect(result.canAccessOtt).toBe(true);
     expect(result.restrictionMessage).toBeNull();
-    expect(mockUserRepo.findByContractNumber).toHaveBeenCalledWith(
-      'CONTRACT-001',
+
+    // Should NOT have accessToken or refreshToken
+    expect(result).not.toHaveProperty('accessToken');
+    expect(result).not.toHaveProperty('refreshToken');
+
+    // Verify OTP was sent
+    expect(mockOtpService.generateAndSend).toHaveBeenCalledWith(
+      'user-1',
+      'client@test.com',
     );
-    expect(mockHashService.compare).toHaveBeenCalledWith(
-      'password123',
-      'hashed-pw',
-    );
-    expect(mockAccountRepo.findById).toHaveBeenCalledWith('account-1');
-    expect(mockBillingGateway.getSubscriptionStatus).toHaveBeenCalledWith(
-      'account-1',
-    );
-    expect(mockTokenService.generateTokenPair).toHaveBeenCalledWith({
+    // Verify login challenge token was generated
+    expect(mockTokenService.generateLoginChallenge).toHaveBeenCalledWith({
       sub: 'user-1',
-      role: UserRole.CLIENTE,
-      permissions: ['app:playback', 'app:profiles'],
-      aud: Audience.APP,
-      accountId: 'account-1',
-      entitlements: ['hd', '4k'],
+      deviceId: 'device-1',
+      aud: 'app',
     });
-    expect(mockSessionRepo.save).toHaveBeenCalled();
+    // Should NOT generate JWT or save session
+    expect(mockTokenService.generateTokenPair).not.toHaveBeenCalled();
   });
 
   it('should throw when user not found', async () => {
@@ -187,15 +169,19 @@ describe('LoginAppUseCase', () => {
         deviceId: 'device-1',
       }),
     ).rejects.toThrow(UnauthorizedException);
+
+    // Should NOT send OTP when password is wrong
+    expect(mockOtpService.generateAndSend).not.toHaveBeenCalled();
   });
 
-  it('should allow login but restrict OTT when ISP service is SUSPENDIDO', async () => {
+  it('should return challenge with OTT restriction when ISP service is SUSPENDIDO', async () => {
     mockUserRepo.findByContractNumber.mockResolvedValue(activeClient);
     mockHashService.compare.mockResolvedValue(true);
     mockAccountRepo.findById.mockResolvedValue(suspendedAccount);
-    mockTokenService.generateTokenPair.mockResolvedValue(tokenPair);
-    mockHashService.hash.mockResolvedValue('hashed-refresh');
-    mockSessionRepo.save.mockResolvedValue(undefined);
+    mockOtpService.generateAndSend.mockResolvedValue(undefined);
+    mockTokenService.generateLoginChallenge.mockResolvedValue(
+      'challenge-token',
+    );
 
     const result = await useCase.execute({
       contractNumber: 'CONTRACT-001',
@@ -203,11 +189,32 @@ describe('LoginAppUseCase', () => {
       deviceId: 'device-1',
     });
 
-    // Auth succeeds but OTT access is restricted
-    expect(result.accessToken).toBe('access-token');
+    // Challenge is still returned (auth succeeds, OTT is restricted)
+    expect(result.otpRequired).toBe(true);
+    expect(result.loginToken).toBe('challenge-token');
     expect(result.canAccessOtt).toBe(false);
     expect(result.restrictionMessage).toContain('SUSPENDIDO');
-    // Should NOT fetch entitlements when OTT is restricted
-    expect(mockBillingGateway.getSubscriptionStatus).not.toHaveBeenCalled();
+
+    // OTP should still be sent even if OTT is restricted
+    expect(mockOtpService.generateAndSend).toHaveBeenCalled();
+  });
+
+  it('should throw when user has no email registered', async () => {
+    const noEmailUser = new User({
+      ...activeClient,
+      email: '',
+      createdAt: new Date(),
+    });
+    mockUserRepo.findByContractNumber.mockResolvedValue(noEmailUser);
+    mockHashService.compare.mockResolvedValue(true);
+    mockAccountRepo.findById.mockResolvedValue(activeAccount);
+
+    await expect(
+      useCase.execute({
+        contractNumber: 'CONTRACT-001',
+        password: 'password123',
+        deviceId: 'device-1',
+      }),
+    ).rejects.toThrow(UnauthorizedException);
   });
 });

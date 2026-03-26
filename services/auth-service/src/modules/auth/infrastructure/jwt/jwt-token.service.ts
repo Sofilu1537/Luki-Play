@@ -5,6 +5,7 @@ import type {
   TokenService,
   JwtPayload,
   TokenPair,
+  LoginChallengePayload,
 } from '../../domain/interfaces/token.service';
 import type { StringValue } from 'ms';
 
@@ -51,5 +52,37 @@ export class JwtTokenService implements TokenService {
     return this.jwtService.verifyAsync<JwtPayload>(token, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
     });
+  }
+
+  async generateLoginChallenge(
+    payload: LoginChallengePayload,
+  ): Promise<string> {
+    return this.jwtService.signAsync(
+      { ...payload, purpose: 'login-challenge' },
+      {
+        secret: this.configService.get<string>(
+          'JWT_ACCESS_SECRET',
+          'dev-access-secret',
+        ),
+        expiresIn: '5m',
+      },
+    );
+  }
+
+  async verifyLoginChallenge(token: string): Promise<LoginChallengePayload> {
+    const decoded = await this.jwtService.verifyAsync<
+      LoginChallengePayload & { purpose: string }
+    >(token, {
+      secret: this.configService.get<string>(
+        'JWT_ACCESS_SECRET',
+        'dev-access-secret',
+      ),
+    });
+
+    if (decoded.purpose !== 'login-challenge') {
+      throw new Error('Invalid token purpose');
+    }
+
+    return { sub: decoded.sub, deviceId: decoded.deviceId, aud: decoded.aud };
   }
 }

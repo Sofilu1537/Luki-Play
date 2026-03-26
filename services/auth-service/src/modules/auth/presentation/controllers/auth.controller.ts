@@ -16,6 +16,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { LoginAppUseCase } from '../../application/use-cases/login-app.use-case';
+import { CompleteLoginUseCase } from '../../application/use-cases/complete-login.use-case';
 import { LoginCmsUseCase } from '../../application/use-cases/login-cms.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
@@ -29,8 +30,13 @@ import { LoginAppDto } from '../../application/dto/login-app.dto';
 import { LoginCmsDto } from '../../application/dto/login-cms.dto';
 import { RefreshTokenDto } from '../../application/dto/refresh-token.dto';
 import { ChangePasswordDto } from '../../application/dto/change-password.dto';
-import { RequestOtpDto, VerifyOtpDto } from '../../application/dto/otp.dto';
 import {
+  RequestOtpDto,
+  VerifyOtpDto,
+  VerifyLoginOtpDto,
+} from '../../application/dto/otp.dto';
+import {
+  LoginChallengeResponse,
   AuthTokensResponse,
   UserProfileResponse,
   SessionResponse,
@@ -45,6 +51,7 @@ import type { JwtPayload } from '../../domain/interfaces/token.service';
 export class AuthController {
   constructor(
     private readonly loginAppUseCase: LoginAppUseCase,
+    private readonly completeLoginUseCase: CompleteLoginUseCase,
     private readonly loginCmsUseCase: LoginCmsUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
@@ -58,11 +65,31 @@ export class AuthController {
 
   @Post('app/login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login for APP clients using contract number' })
-  @ApiResponse({ status: 200, type: AuthTokensResponse })
+  @ApiOperation({
+    summary:
+      'Phase 1: Validate credentials and send OTP. Returns a loginToken for Phase 2.',
+  })
+  @ApiResponse({ status: 200, type: LoginChallengeResponse })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async loginApp(@Body() dto: LoginAppDto): Promise<AuthTokensResponse> {
+  async loginApp(@Body() dto: LoginAppDto): Promise<LoginChallengeResponse> {
     return this.loginAppUseCase.execute(dto);
+  }
+
+  @Post('app/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Phase 2: Verify OTP and complete login. Issues JWT access + refresh tokens.',
+  })
+  @ApiResponse({ status: 200, type: AuthTokensResponse })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid OTP or expired login token',
+  })
+  async completeLogin(
+    @Body() dto: VerifyLoginOtpDto,
+  ): Promise<AuthTokensResponse> {
+    return this.completeLoginUseCase.execute(dto);
   }
 
   @Post('cms/login')
@@ -147,7 +174,7 @@ export class AuthController {
 
   @Post('otp/request')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Request OTP code sent via email' })
+  @ApiOperation({ summary: 'Request / resend OTP code sent via email' })
   @ApiResponse({ status: 200, type: MessageResponse })
   @ApiResponse({ status: 404, description: 'User not found' })
   async requestOtp(@Body() dto: RequestOtpDto): Promise<MessageResponse> {
@@ -156,7 +183,9 @@ export class AuthController {
 
   @Post('otp/verify')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify OTP code' })
+  @ApiOperation({
+    summary: 'Verify OTP code (standalone, does not issue tokens)',
+  })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 401, description: 'Invalid or expired OTP' })
   async verifyOtp(@Body() dto: VerifyOtpDto): Promise<{ verified: boolean }> {

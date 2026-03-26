@@ -28,3 +28,20 @@ export class VerifyOtpDto {
   @IsNotEmpty()
   code: string;
 }
+
+export class VerifyLoginOtpDto {
+  @ApiProperty({
+    description: 'Login challenge token received from POST /auth/app/login',
+  })
+  @IsString()
+  @IsNotEmpty()
+  loginToken: string;
+
+  @ApiProperty({
+    example: '123456',
+    description: 'OTP code received via email',
+  })
+  @IsString()
+  @IsNotEmpty()
+  code: string;
+}
